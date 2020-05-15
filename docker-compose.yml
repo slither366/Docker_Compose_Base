@@ -1,0 +1,81 @@
+###############################################################################
+#                          Generated on phpdocker.io                          #
+###############################################################################
+version: "3.1"
+services:
+
+    mysql:
+      image: mysql:5.7
+      container_name: mysql
+      restart: unless-stopped
+      tty: true
+      volumes:
+        - ./mysql:/var/lib/mysql
+      environment:
+          MYSQL_DATABASE: docker_database
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: dflores
+          MYSQL_PASSWORD: root
+          SERVICE_TAGS: dev
+          SERVICE_NAME: mysql
+      ports:
+        - "3306:3306"  
+
+    phpmyadmin:
+      depends_on:
+        - mysql
+      image: phpmyadmin/phpmyadmin
+      restart: always
+      ports:
+        - '8080:80'
+      environment:
+          PMA_PORT: 3306
+          PMA_HOST: mysql
+          PMA_USER: root
+          PMA_PASSWORD: root
+
+    servWeb1:
+      image: nginx:alpine
+      container_name: servWeb1
+      working_dir: /application
+      volumes:
+        - ./webFrontend:/application
+        - ./phpdocker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      ports:
+       - "81:80"
+      links:
+       - mysql   
+
+    php-fpm:
+      build: phpdocker/php-fpm
+      container_name: webFrontent
+      working_dir: /application
+      volumes:
+        - ./webFrontend:/application
+        - ./phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/7.1/fpm/conf.d/99-overrides.ini       
+
+    servWeb2:
+      image: nginx:alpine
+      container_name: servWeb2
+      working_dir: /application
+      volumes:
+        - ./webBackend:/application
+        - ./phpdocker/nginx/nginx2.conf:/etc/nginx/conf.d/default.conf
+      ports:
+       - "82:80"
+      links:
+       - mysql    
+
+    php-fpm2:
+      build: phpdocker/php-fpm
+      container_name: webRest
+      working_dir: /application
+      volumes:
+        - ./webBackend:/application
+        - ./phpdocker/php-fpm/php-ini-overrides.ini:/etc/php/7.1/fpm/conf.d/99-overrides.ini       
+
+    haproxy:
+        build: ./haproxy
+        container_name: haproxy
+        ports:
+            - "80:80"
